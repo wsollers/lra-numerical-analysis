@@ -1,0 +1,14 @@
+build/
+build-*/
+cmake-build-*/
+out/
+artifacts/*
+!artifacts/.gitkeep
+.cache/
+.vs/
+.vscode/
+*.user
+*.suo
+*.ninja
+*.log
+compile_commands.json

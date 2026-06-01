@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '.github/workflows/ci.yml'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+      - 'cmake/**'
+      - 'include/**'
+      - 'projects/**'
+      - 'docker/**'
+      - 'tools/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/ci.yml'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+      - 'cmake/**'
+      - 'include/**'
+      - 'projects/**'
+      - 'docker/**'
+      - 'tools/**'
+  workflow_dispatch:
+
+jobs:
+  msvc:
+    name: Windows x64 - MSVC
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake --preset msvc-debug
+
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake --build --preset msvc-debug
+
+      - name: Run hello-one
+        shell: cmd
+        run: build\msvc-debug\projects\hello-one\Debug\hello_one.exe
+
+      - name: Test
+        shell: cmd
+        run: ctest --preset msvc-debug
+
+  docker-clang:
+    name: Docker - Clang
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Clang image
+        run: docker build -f docker/Dockerfile.clang -t lra-numerical-clang .
+
+      - name: Configure, build, run, and test
+        run: |
+          docker run --rm -v "$PWD:/workspace" -w /workspace lra-numerical-clang \
+            bash -lc "cmake -S . -B build/docker-clang -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-18 -DLRA_NUM_ENABLE_SANITIZERS=OFF && cmake --build build/docker-clang && ./build/docker-clang/projects/hello-one/hello_one && ctest --test-dir build/docker-clang --output-on-failure"
+

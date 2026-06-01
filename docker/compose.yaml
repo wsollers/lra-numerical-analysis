@@ -1,0 +1,16 @@
+services:
+  clang:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.clang
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+  analysis:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.analysis
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+
