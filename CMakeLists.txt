@@ -34,4 +34,4 @@ target_include_directories(lra_numeric INTERFACE
 
 add_subdirectory(projects/hello-one)
 add_subdirectory(projects/hello-unit)
-
+add_subdirectory(projects/real-intervals)
