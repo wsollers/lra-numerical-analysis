@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <array>
+#include <cstddef>
 #include <cmath>
 
+#include <lra/numeric/metrics.hpp>
 #include <lra/numeric/real_intervals.hpp>
 
 namespace {
@@ -45,6 +48,56 @@ template <std::floating_point Real>
     }
 
     return interval;
+}
+
+template <std::floating_point Real, std::size_t Size>
+void expect_real_metric_axioms(const std::array<Real, Size>& points) {
+    constexpr lra::numeric::real_metric metric{};
+
+    for (const Real x : points) {
+        EXPECT_EQ(metric(x, x), Real{0});
+
+        for (const Real y : points) {
+            EXPECT_GE(metric(x, y), Real{0});
+            EXPECT_EQ(metric(x, y), metric(y, x));
+
+            if (x == y) {
+                EXPECT_EQ(metric(x, y), Real{0});
+            } else {
+                EXPECT_GT(metric(x, y), Real{0});
+            }
+
+            for (const Real z : points) {
+                EXPECT_LE(metric(x, z), metric(x, y) + metric(y, z));
+            }
+        }
+    }
+}
+
+template <std::floating_point Real, std::size_t Size>
+void expect_interval_metric_axioms(
+    const std::array<lra::numeric::real_interval<Real>, Size>& intervals
+) {
+    constexpr lra::numeric::interval_hausdorff_metric metric{};
+
+    for (const auto x : intervals) {
+        EXPECT_EQ(metric(x, x), Real{0});
+
+        for (const auto y : intervals) {
+            EXPECT_GE(metric(x, y), Real{0});
+            EXPECT_EQ(metric(x, y), metric(y, x));
+
+            if (x.lower == y.lower && x.upper == y.upper) {
+                EXPECT_EQ(metric(x, y), Real{0});
+            } else {
+                EXPECT_GT(metric(x, y), Real{0});
+            }
+
+            for (const auto z : intervals) {
+                EXPECT_LE(metric(x, z), metric(x, y) + metric(y, z));
+            }
+        }
+    }
 }
 
 } // namespace
@@ -223,4 +276,126 @@ TEST(RealIntervals, EpsilonSqrtTwoMatchesEquivalentReal32StepCount) {
     EXPECT_FLOAT_EQ(by_epsilon.lower, fixed_steps.lower);
     EXPECT_FLOAT_EQ(by_epsilon.upper, fixed_steps.upper);
     EXPECT_LE(by_epsilon.upper - by_epsilon.lower, tolerance.upper);
+}
+
+TEST(RealMetric, ComputesReal32Distance) {
+    constexpr lra::numeric::real_metric metric{};
+
+    EXPECT_FLOAT_EQ(metric(1.0F, 4.0F), 3.0F);
+    EXPECT_FLOAT_EQ(metric(4.0F, 1.0F), 3.0F);
+}
+
+TEST(RealMetric, ComputesReal64Distance) {
+    constexpr lra::numeric::real_metric metric{};
+
+    EXPECT_DOUBLE_EQ(metric(1.0, 4.0), 3.0);
+    EXPECT_DOUBLE_EQ(metric(4.0, 1.0), 3.0);
+}
+
+TEST(RealMetric, SatisfiesMetricAxiomsForReal32Samples) {
+    expect_real_metric_axioms(std::array<lra::numeric::real32, 5>{-2.0F, -0.5F, 0.0F, 1.0F, 3.0F});
+}
+
+TEST(RealMetric, SatisfiesMetricAxiomsForReal64Samples) {
+    expect_real_metric_axioms(std::array<lra::numeric::real64, 5>{-2.0, -0.5, 0.0, 1.0, 3.0});
+}
+
+TEST(RealMetric, ChecksClosedScalarTolerance) {
+    constexpr lra::numeric::real_metric metric{};
+
+    EXPECT_TRUE(lra::numeric::within_tolerance(metric, 1.0, 1.5, 0.5));
+    EXPECT_TRUE(lra::numeric::within_tolerance(
+        metric,
+        1.0,
+        1.5,
+        0.5,
+        lra::numeric::closed_tolerance
+    ));
+    EXPECT_FALSE(lra::numeric::within_tolerance(metric, 1.0, 1.75, 0.5));
+}
+
+TEST(RealMetric, ChecksOpenScalarTolerance) {
+    constexpr lra::numeric::real_metric metric{};
+
+    EXPECT_TRUE(lra::numeric::within_tolerance(
+        metric,
+        1.0,
+        1.25,
+        0.5,
+        lra::numeric::open_tolerance
+    ));
+    EXPECT_FALSE(lra::numeric::within_tolerance(
+        metric,
+        1.0,
+        1.5,
+        0.5,
+        lra::numeric::open_tolerance
+    ));
+}
+
+TEST(RealMetric, ChecksIntervalTolerance) {
+    constexpr lra::numeric::real_metric metric{};
+    const lra::numeric::real64_interval tolerance{0.0, 0.5};
+
+    EXPECT_TRUE(lra::numeric::within_tolerance(metric, 1.0, 1.5, tolerance));
+    EXPECT_FALSE(lra::numeric::within_tolerance(
+        metric,
+        1.0,
+        1.5,
+        tolerance,
+        lra::numeric::open_tolerance
+    ));
+}
+
+TEST(IntervalHausdorffMetric, ComputesReal32Distance) {
+    constexpr lra::numeric::interval_hausdorff_metric metric{};
+    const lra::numeric::real32_interval left{1.0F, 3.0F};
+    const lra::numeric::real32_interval right{2.0F, 6.0F};
+
+    EXPECT_FLOAT_EQ(metric(left, right), 3.0F);
+    EXPECT_FLOAT_EQ(metric(right, left), 3.0F);
+}
+
+TEST(IntervalHausdorffMetric, ComputesReal64Distance) {
+    constexpr lra::numeric::interval_hausdorff_metric metric{};
+    const lra::numeric::real64_interval left{1.0, 3.0};
+    const lra::numeric::real64_interval right{2.0, 6.0};
+
+    EXPECT_DOUBLE_EQ(metric(left, right), 3.0);
+    EXPECT_DOUBLE_EQ(metric(right, left), 3.0);
+}
+
+TEST(IntervalHausdorffMetric, SatisfiesMetricAxiomsForReal32Samples) {
+    expect_interval_metric_axioms(std::array<lra::numeric::real32_interval, 5>{
+        lra::numeric::real32_interval{-2.0F, -1.0F},
+        lra::numeric::real32_interval{-1.0F, 1.0F},
+        lra::numeric::real32_interval{0.0F, 0.0F},
+        lra::numeric::real32_interval{1.0F, 2.0F},
+        lra::numeric::real32_interval{1.5F, 3.0F},
+    });
+}
+
+TEST(IntervalHausdorffMetric, SatisfiesMetricAxiomsForReal64Samples) {
+    expect_interval_metric_axioms(std::array<lra::numeric::real64_interval, 5>{
+        lra::numeric::real64_interval{-2.0, -1.0},
+        lra::numeric::real64_interval{-1.0, 1.0},
+        lra::numeric::real64_interval{0.0, 0.0},
+        lra::numeric::real64_interval{1.0, 2.0},
+        lra::numeric::real64_interval{1.5, 3.0},
+    });
+}
+
+TEST(IntervalHausdorffMetric, ChecksClosedTolerance) {
+    constexpr lra::numeric::interval_hausdorff_metric metric{};
+    const lra::numeric::real64_interval left{1.0, 3.0};
+    const lra::numeric::real64_interval right{1.25, 3.5};
+
+    EXPECT_TRUE(lra::numeric::within_tolerance(metric, left, right, 0.5));
+    EXPECT_FALSE(lra::numeric::within_tolerance(
+        metric,
+        left,
+        right,
+        0.5,
+        lra::numeric::open_tolerance
+    ));
 }
