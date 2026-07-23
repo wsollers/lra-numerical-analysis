@@ -18,3 +18,7 @@ compile_commands.json
 # These may include personally purchased or otherwise non-redistributable files.
 *.pdf
 .claude/
+
+# Local Google Drive upload scratch directories
+.tmp.driveupload/
+**/.tmp.driveupload/
