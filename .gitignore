@@ -22,3 +22,5 @@ compile_commands.json
 # Local Google Drive upload scratch directories
 .tmp.driveupload/
 **/.tmp.driveupload/
+
+.codex-remote-attachments/
