@@ -1,3 +1,20 @@
+<#
+.SYNOPSIS
+Builds and runs the Clang Docker development image for the repository.
+
+.DESCRIPTION
+Builds the Docker image defined by docker/Dockerfile.clang, then runs the
+repository build, sample executable, and test suite inside the container.
+
+.PARAMETER ImageName
+Docker image tag to build and run.
+
+.EXAMPLE
+Get-Help .\tools\build-docker-clang.ps1 -Detailed
+
+.EXAMPLE
+.\tools\build-docker-clang.ps1 -ImageName lra-numerical-clang
+#>
 param(
     [string]$ImageName = 'lra-numerical-clang'
 )

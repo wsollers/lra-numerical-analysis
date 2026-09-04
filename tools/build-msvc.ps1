@@ -1,3 +1,21 @@
+<#
+.SYNOPSIS
+Builds and tests the repository with the Visual Studio MSVC toolchain.
+
+.DESCRIPTION
+Locates the latest Visual Studio C++ environment, configures the matching CMake
+preset, builds the project, runs the sample executable, and executes tests.
+
+.PARAMETER Configuration
+Selects the CMake preset and executable output for either a Debug or Release
+build.
+
+.EXAMPLE
+Get-Help .\tools\build-msvc.ps1 -Detailed
+
+.EXAMPLE
+.\tools\build-msvc.ps1 -Configuration Release
+#>
 param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Debug'
